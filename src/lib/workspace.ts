@@ -1,10 +1,36 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 import { WORKSPACE_COOKIE } from "./cookies";
 import { createOpaqueToken, sha256 } from "./crypto";
 import { prisma } from "./prisma";
+import { resolveSiteUrl } from "./site";
 
 const WORKSPACE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+
+async function shouldUseSecureWorkspaceCookie() {
+  const headerStore = await headers();
+  const forwardedProto = headerStore.get("x-forwarded-proto")?.split(",")[0]?.trim();
+
+  if (forwardedProto) {
+    return forwardedProto === "https";
+  }
+
+  const origin = headerStore.get("origin");
+  if (origin) {
+    try {
+      return new URL(origin).protocol === "https:";
+    } catch {}
+  }
+
+  const referer = headerStore.get("referer");
+  if (referer) {
+    try {
+      return new URL(referer).protocol === "https:";
+    } catch {}
+  }
+
+  return resolveSiteUrl().protocol === "https:";
+}
 
 export async function ensureWorkspace() {
   const cookieStore = await cookies();
@@ -36,11 +62,12 @@ export async function ensureWorkspace() {
       tokenHash,
     },
   });
+  const secure = await shouldUseSecureWorkspaceCookie();
 
   cookieStore.set(WORKSPACE_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     maxAge: WORKSPACE_COOKIE_MAX_AGE_SECONDS,
     path: "/",
   });
