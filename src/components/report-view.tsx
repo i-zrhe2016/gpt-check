@@ -1,23 +1,30 @@
 import type { SerializedRun } from "@/lib/serializers";
-import { formatRunOutcome, formatRunStatus } from "@/lib/run-presenters";
+import type { AppLocale } from "@/lib/locale";
+import {
+  formatRunErrorSummary,
+  formatRunOutcome,
+  formatRunStatus,
+  formatRunSummaryExplanation,
+} from "@/lib/run-presenters";
 
 type ReportViewProps = {
   heading: string;
   description: string;
   run: SerializedRun;
   shareUrl: string | null;
+  locale?: AppLocale;
   readonly?: boolean;
 };
 
 function formatPercent(value: number | undefined) {
   if (typeof value !== "number" || Number.isNaN(value)) {
-    return "暂无";
+    return null;
   }
 
   return `${(value * 100).toFixed(2)}%`;
 }
 
-export function ReportView({ heading, description, run, shareUrl, readonly = false }: ReportViewProps) {
+export function ReportView({ heading, description, run, shareUrl, locale = "zh-CN", readonly = false }: ReportViewProps) {
   const topMatches = Array.isArray(run.topMatches) ? (run.topMatches as Array<Record<string, unknown>>) : [];
   const chart = run.chart as
     | {
@@ -31,47 +38,88 @@ export function ReportView({ heading, description, run, shareUrl, readonly = fal
         outcome?: string;
       }
     | null;
+  const copy =
+    locale === "en"
+      ? {
+          title: "Detection Report",
+          openSharePage: "Open shared view",
+          runStatus: "Run status",
+          summaryPlaceholder: "A summary will appear here after the check completes.",
+          validSamples: "Valid samples",
+          processedRequests: `Processed ${run.processedCount} requests so far.`,
+          requestFailures: "Request failures",
+          noFailures: "No request failures have been recorded.",
+          rankingTitle: "Similarity Ranking",
+          emptyRanking: "No ranking is available yet.",
+          unknownBaseline: "Unknown baseline",
+          overall: "Overall",
+          mode: "Mode",
+          cosine: "Cosine",
+          chartTitle: "Bucket Distribution Comparison",
+          chartPlaceholder: "The distribution chart will appear after enough samples have been collected.",
+          unavailable: "N/A",
+        }
+      : {
+          title: "检测报告",
+          openSharePage: "打开访问页",
+          runStatus: "运行状态",
+          summaryPlaceholder: "检测完成后，这里会显示结果摘要。",
+          validSamples: "有效样本",
+          processedRequests: `当前已处理 ${run.processedCount} 次请求。`,
+          requestFailures: "请求失败",
+          noFailures: "当前没有记录到请求失败。",
+          rankingTitle: "相似度排名",
+          emptyRanking: "当前还没有可展示的排名结果。",
+          unknownBaseline: "未知基线",
+          overall: "综合",
+          mode: "众数",
+          cosine: "余弦",
+          chartTitle: "分桶分布对比",
+          chartPlaceholder: "收集到足够样本后，这里会显示分布图。",
+          unavailable: "暂无",
+        };
+  const summaryText = formatRunSummaryExplanation(summary, topMatches, locale);
 
   return (
     <section className="reportCard">
       <div className="sectionHeader">
         <div>
           <p className="eyebrow">{heading}</p>
-          <h2>检测报告</h2>
+          <h2>{copy.title}</h2>
           <p className="muted">{description}</p>
         </div>
         {!readonly && shareUrl ? (
           <a className="secondaryButton" href={shareUrl}>
-            打开访问页
+            {copy.openSharePage}
           </a>
         ) : null}
       </div>
 
       <div className="reportGrid">
         <div className="metricCard">
-          <span>运行状态</span>
-          <strong>{formatRunStatus(run.status)}</strong>
-          {summary?.outcome ? <small>{formatRunOutcome(summary.outcome)}</small> : null}
-          <p>{summary?.explanation ?? "检测完成后，这里会显示结果摘要。"}</p>
+          <span>{copy.runStatus}</span>
+          <strong>{formatRunStatus(run.status, locale)}</strong>
+          {summary?.outcome ? <small>{formatRunOutcome(summary.outcome, locale)}</small> : null}
+          <p>{summaryText ?? copy.summaryPlaceholder}</p>
         </div>
         <div className="metricCard">
-          <span>有效样本</span>
+          <span>{copy.validSamples}</span>
           <strong>
             {run.validSampleCount} / {run.sampleCount}
           </strong>
-          <p>当前已处理 {run.processedCount} 次请求。</p>
+          <p>{copy.processedRequests}</p>
         </div>
         <div className="metricCard">
-          <span>请求失败</span>
+          <span>{copy.requestFailures}</span>
           <strong>{run.errorCount}</strong>
-          <p>{run.errorSummary ?? "当前没有记录到请求失败。"}</p>
+          <p>{formatRunErrorSummary(run.errorSummary, locale) ?? copy.noFailures}</p>
         </div>
       </div>
 
       <div className="reportBody">
         <div className="matchesCard">
-          <h3>相似度排名</h3>
-          {topMatches.length === 0 ? <p className="muted">当前还没有可展示的排名结果。</p> : null}
+          <h3>{copy.rankingTitle}</h3>
+          {topMatches.length === 0 ? <p className="muted">{copy.emptyRanking}</p> : null}
           {topMatches.map((match, index) => {
             const similarity = match.similarity as
               | {
@@ -84,15 +132,15 @@ export function ReportView({ heading, description, run, shareUrl, readonly = fal
               <article key={`${String(match.slug)}-${index}`} className="matchCard">
                 <div className="matchRank">#{index + 1}</div>
                 <div>
-                  <h4>{String(match.displayName ?? "未知基线")}</h4>
+                  <h4>{String(match.displayName ?? copy.unknownBaseline)}</h4>
                   <p className="muted">
                     {String(match.vendor ?? "")} / {String(match.model ?? "")}
                   </p>
                 </div>
                 <div className="matchStats">
-                  <span>综合 {formatPercent(typeof match.score === "number" ? match.score : undefined)}</span>
-                  <span>众数 {formatPercent(similarity?.modeScore)}</span>
-                  <span>余弦 {formatPercent(similarity?.cosineSimilarity)}</span>
+                  <span>{copy.overall} {formatPercent(typeof match.score === "number" ? match.score : undefined) ?? copy.unavailable}</span>
+                  <span>{copy.mode} {formatPercent(similarity?.modeScore) ?? copy.unavailable}</span>
+                  <span>{copy.cosine} {formatPercent(similarity?.cosineSimilarity) ?? copy.unavailable}</span>
                 </div>
               </article>
             );
@@ -100,7 +148,7 @@ export function ReportView({ heading, description, run, shareUrl, readonly = fal
         </div>
 
         <div className="chartCard">
-          <h3>分桶分布对比</h3>
+          <h3>{copy.chartTitle}</h3>
           {chart?.labels && chart.series?.length ? (
             <div className="chartStack">
               {chart.series.map((series, seriesIndex) => (
@@ -127,7 +175,7 @@ export function ReportView({ heading, description, run, shareUrl, readonly = fal
               ))}
             </div>
           ) : (
-            <p className="muted">收集到足够样本后，这里会显示分布图。</p>
+            <p className="muted">{copy.chartPlaceholder}</p>
           )}
         </div>
       </div>

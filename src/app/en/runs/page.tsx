@@ -8,14 +8,14 @@ import { serializeRun } from "@/lib/serializers";
 import { findWorkspaceFromCookie } from "@/lib/workspace";
 
 export const metadata: Metadata = {
-  title: "检测记录",
+  title: "Run History",
   robots: {
     index: false,
     follow: false,
   },
 };
 
-export default async function RunsPage() {
+export default async function EnglishRunsPage() {
   const workspace = await findWorkspaceFromCookie();
   const runs = workspace
     ? await prisma.testRun.findMany({
@@ -34,51 +34,51 @@ export default async function RunsPage() {
     <main className="shell pageShell">
       <section className="pageHeader">
         <div>
-          <p className="eyebrow">运行历史</p>
-          <h1>你的检测记录</h1>
-          <p className="pageLead">这里只显示当前浏览器保存的最近 100 条检测记录，方便继续查看结果和复用分享链接。</p>
+          <p className="eyebrow">Run History</p>
+          <h1>Your recent checks</h1>
+          <p className="pageLead">This page shows only the most recent 100 checks stored in the current browser, so you can reopen results and reuse share links.</p>
         </div>
         <div className="actionRow">
-          <Link className="secondaryButton" href="/en/runs" prefetch={false}>
-            English
+          <Link className="secondaryButton" href="/runs" prefetch={false}>
+            中文
           </Link>
-          <Link className="secondaryButton" href="/" prefetch={false}>
-            新建检测
+          <Link className="secondaryButton" href="/en" prefetch={false}>
+            New check
           </Link>
         </div>
       </section>
 
       {items.length === 0 ? (
         <section className="emptyState">
-          <h2>还没有检测记录</h2>
-          <p className="muted">先发起一次检测，这里才会出现可回看的结果记录。</p>
-          <Link className="primaryButton" href="/" prefetch={false}>
-            返回首页
+          <h2>No checks yet</h2>
+          <p className="muted">Start a check first, and the saved result history will appear here.</p>
+          <Link className="primaryButton" href="/en" prefetch={false}>
+            Back to home
           </Link>
         </section>
       ) : (
         <section className="listPanel">
           <div className="sectionHeader">
             <div>
-              <p className="eyebrow">记录列表</p>
-              <h2>按时间倒序查看</h2>
-              <p className="muted">点击任意记录进入结果页，查看报告详情或生成分享链接。</p>
+              <p className="eyebrow">Saved Runs</p>
+              <h2>Newest first</h2>
+              <p className="muted">Open any record to inspect the report details or generate a share link.</p>
             </div>
           </div>
 
           <div className="historyList">
             {items.map((run) => (
-              <Link key={run.id} className="runCard" href={localizePath("zh-CN", `/runs/${run.id}`)} prefetch={false}>
+              <Link key={run.id} className="runCard" href={localizePath("en", `/runs/${run.id}`)} prefetch={false}>
                 <div className="runCardMain">
                   <strong>{run.model}</strong>
                   <div className="endpointMeta">
                     <span className="endpointLabel">Endpoint</span>
                     <p>{formatRunEndpoint(run.baseUrl)}</p>
                   </div>
-                  <span className="runTime">{formatRunTime(run.createdAt, "zh-CN")}</span>
+                  <span className="runTime">{formatRunTime(run.createdAt, "en")}</span>
                 </div>
                 <div className="runMeta">
-                  <span className={`statusBadge is-${formatRunStatusTone(run.status)}`}>{formatRunStatus(run.status, "zh-CN")}</span>
+                  <span className={`statusBadge is-${formatRunStatusTone(run.status)}`}>{formatRunStatus(run.status, "en")}</span>
                   <span>
                     {run.validSampleCount}/{run.sampleCount}
                   </span>

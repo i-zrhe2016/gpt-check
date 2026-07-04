@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getLocalePrefix, normalizeLocale } from "@/lib/locale";
 import { createOpaqueToken } from "@/lib/crypto";
 import { prisma } from "@/lib/prisma";
 import { requireWorkspace } from "@/lib/workspace";
@@ -14,6 +15,7 @@ function createRedirectResponse(location: string) {
 }
 
 export async function POST(request: Request, context: RouteContext<"/runs/[id]/share">) {
+  const locale = normalizeLocale(new URL(request.url).searchParams.get("lang"));
   const workspace = await requireWorkspace();
   const { id } = await context.params;
 
@@ -40,5 +42,5 @@ export async function POST(request: Request, context: RouteContext<"/runs/[id]/s
     });
   }
 
-  return createRedirectResponse(`/runs/${run.id}?shared=1`);
+  return createRedirectResponse(`${getLocalePrefix(locale)}/runs/${run.id}?shared=1`);
 }

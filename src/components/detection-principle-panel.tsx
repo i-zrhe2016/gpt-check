@@ -2,48 +2,125 @@
 
 import { useEffect, useState } from "react";
 
-const FLOW_STEPS = [
-  {
-    id: "sample",
-    label: "发起检测",
-    title: "先问一组固定问题",
-    description: "系统会连续发出多条中文问题，覆盖理解、执行和表达场景，不会只看某一条回复的发挥。",
-    systemAction: "批量采样 50 到 100 条回答，先把样本收齐。",
-    userView: "你看到的是“正在检测”，而不是一条回答就直接下结论。",
-    result: "得到足够样本后，才能进入下一步判断。",
-  },
-  {
-    id: "extract",
-    label: "提取特征",
-    title: "把回答变成可比较的信号",
-    description: "每条回答都会被拆成更稳定的特征，比如表达习惯、遵循程度、拒答方式和结构一致性。",
-    systemAction: "提取一组行为指纹，降低措辞波动带来的误差。",
-    userView: "你不需要手动逐条查看，系统会先整理成统一信号。",
-    result: "原始回答会被转成一组更容易复核的特征。",
-  },
-  {
-    id: "compare",
-    label: "对照基线",
-    title: "和参考模型做交叉比对",
-    description: "系统会把这些特征和已知模型基线进行比较，看它更像目标模型，还是更像更弱的替代模型。",
-    systemAction: "同时计算多组相似度，避免只靠单一指标判断。",
-    userView: "你最终看到的是对照结果，而不是一堆难懂的中间参数。",
-    result: "如果更弱基线持续更接近，就会被标记为风险信号。",
-  },
-  {
-    id: "result",
-    label: "给出判断",
-    title: "输出是否疑似降配",
-    description: "最后一步会综合样本稳定性、相似度走势和异常项，给出更容易理解的检测结论。",
-    systemAction: "合并证据并生成结果说明。",
-    userView: "你拿到的是“是否疑似降配”以及为什么会这么判断。",
-    result: "结论不是猜测，而是由前面几步的证据串起来的。",
-  },
-] as const;
+import type { AppLocale } from "@/lib/locale";
 
-export function DetectionPrinciplePanel() {
+const FLOW_STEPS = {
+  "zh-CN": [
+    {
+      id: "sample",
+      label: "发起检测",
+      title: "重复发送固定中文提示词",
+      description: "系统会多次请求目标模型，只要求它返回 1 到 355 之间的随机数字，确保每次采样都使用同一探针。",
+      systemAction: "并发发起 50 到 100 次请求，收集原始返回结果。",
+      userView: "你会先看到进度更新，直到样本数量足够进入下一步。",
+      result: "得到一批可用于统计的原始响应样本。",
+    },
+    {
+      id: "extract",
+      label: "提取数字",
+      title: "把回答清洗成有效样本",
+      description: "系统会从每条返回中提取有效数字，过滤超出范围或格式不合法的结果，并同时统计失败次数。",
+      systemAction: "保留 1 到 355 之间的有效数字，剔除无效响应。",
+      userView: "你会看到有效样本数、已处理请求数和失败数持续变化。",
+      result: "得到一组干净的数字样本，用于后续分布分析。",
+    },
+    {
+      id: "compare",
+      label: "计算分布",
+      title: "生成当前模型的指纹分布",
+      description: "样本会被汇总成分桶分布和基础统计指标，例如众数、均值和余弦相似度所需的数据。",
+      systemAction: "计算分布、统计值，并与本地保存的基线模型做相似度比较。",
+      userView: "结果页会逐步补齐排名、样本统计和分布图。",
+      result: "得到当前接口与各个基线模型之间的相似度分数。",
+    },
+    {
+      id: "result",
+      label: "输出结果",
+      title: "给出最接近的基线判断",
+      description: "系统会选出最接近的基线模型，并展示 Top 3 匹配结果，帮助判断接口是否存在掺水、降配或错配。",
+      systemAction: "生成摘要、排名和分布对比图，写入最终报告。",
+      userView: "你拿到的是可复核的检测报告，而不是单条回复的主观判断。",
+      result: "形成一份可分享、可回看的检测结果。",
+    },
+  ],
+  en: [
+    {
+      id: "sample",
+      label: "Start run",
+      title: "Replay one fixed Chinese probe",
+      description: "The system repeatedly asks the target model to return only a random number from 1 to 355, so every sample uses the same prompt.",
+      systemAction: "Send 50 to 100 requests, with limited concurrency, and collect raw responses.",
+      userView: "You first see progress updates while the sample set is still being collected.",
+      result: "A batch of raw responses is collected for statistical analysis.",
+    },
+    {
+      id: "extract",
+      label: "Extract values",
+      title: "Clean responses into valid samples",
+      description: "Each response is parsed for a valid number. Out-of-range or malformed outputs are discarded, and request failures are counted separately.",
+      systemAction: "Keep only integers between 1 and 355 and discard invalid responses.",
+      userView: "Valid sample count, processed requests, and failures update as the run proceeds.",
+      result: "A clean numeric sample set is prepared for distribution analysis.",
+    },
+    {
+      id: "compare",
+      label: "Build distribution",
+      title: "Generate the model fingerprint",
+      description: "The sample set is converted into bucketed distributions and basic statistics, which are then compared with locally stored baseline models.",
+      systemAction: "Compute distributions, statistics, and similarity scores against baseline fingerprints.",
+      userView: "The report gradually fills in ranking cards, sample stats, and a comparison chart.",
+      result: "Similarity scores are produced for the current endpoint against each baseline model.",
+    },
+    {
+      id: "result",
+      label: "Deliver report",
+      title: "Show the closest baseline match",
+      description: "The system highlights the closest baseline and the Top 3 matches so you can judge whether the endpoint looks diluted, downgraded, or mismatched.",
+      systemAction: "Write the final summary, ranking, and distribution comparison chart.",
+      userView: "You get a report that can be reviewed and shared, rather than a judgment based on one reply.",
+      result: "A shareable, reviewable detection report is produced.",
+    },
+  ],
+} as const;
+
+const PANEL_COPY = {
+  "zh-CN": {
+    kicker: "4 步看懂检测",
+    intro: "页面会自动演示一次检测是怎么完成的，你也可以点任意一步查看当前说明。",
+    autoPlaying: "自动演示中",
+    autoPaused: "自动切换已关闭",
+    ariaLabel: "模型检测流程",
+    currentStep: "当前步骤",
+    outcome: "这一步会产出什么",
+    systemAction: "系统在做什么",
+    userView: "用户会看到什么",
+    why: "为什么要这一步",
+    whyDetail: "把请求、清洗、比对和结论拆开展示，用户更容易理解结果不是拍脑袋得出的。",
+  },
+  en: {
+    kicker: "Understand the check in 4 steps",
+    intro: "The page auto-plays a full run. You can also click any step to inspect that part of the process.",
+    autoPlaying: "Auto demo running",
+    autoPaused: "Auto-switching paused",
+    ariaLabel: "Model detection flow",
+    currentStep: "Current step",
+    outcome: "What this step produces",
+    systemAction: "What the system does",
+    userView: "What you see",
+    why: "Why this step matters",
+    whyDetail: "Breaking the run into request, cleanup, comparison, and conclusion makes it clear the result is evidence-based.",
+  },
+} as const;
+
+type DetectionPrinciplePanelProps = {
+  locale?: AppLocale;
+};
+
+export function DetectionPrinciplePanel({ locale = "zh-CN" }: DetectionPrinciplePanelProps) {
   const [activeStep, setActiveStep] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const steps = FLOW_STEPS[locale];
+  const copy = PANEL_COPY[locale];
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -78,31 +155,31 @@ export function DetectionPrinciplePanel() {
     }
 
     const timer = window.setInterval(() => {
-      setActiveStep((current) => (current + 1) % FLOW_STEPS.length);
+      setActiveStep((current) => (current + 1) % steps.length);
     }, 2800);
 
     return () => {
       window.clearInterval(timer);
     };
-  }, [reducedMotion]);
+  }, [reducedMotion, steps.length]);
 
-  const currentStep = FLOW_STEPS[activeStep];
+  const currentStep = steps[activeStep];
 
   return (
     <div className="principleFlow">
       <div className="flowBoard">
         <div className="flowIntro">
           <div>
-            <p className="flowKicker">4 步看懂检测</p>
-            <p>页面会自动演示一次检测是怎么完成的，你也可以点任意一步查看当前说明。</p>
+            <p className="flowKicker">{copy.kicker}</p>
+            <p>{copy.intro}</p>
           </div>
           <span className={`flowStatus${reducedMotion ? " is-paused" : ""}`}>
-            {reducedMotion ? "自动切换已关闭" : "自动演示中"}
+            {reducedMotion ? copy.autoPaused : copy.autoPlaying}
           </span>
         </div>
 
-        <div className="flowTrack" role="tablist" aria-label="模型检测流程">
-          {FLOW_STEPS.map((step, index) => {
+        <div className="flowTrack" role="tablist" aria-label={copy.ariaLabel}>
+          {steps.map((step, index) => {
             const isActive = index === activeStep;
 
             return (
@@ -129,29 +206,29 @@ export function DetectionPrinciplePanel() {
         <div className="flowDetail" role="tabpanel" id={`flow-panel-${currentStep.id}`} aria-labelledby={`flow-tab-${currentStep.id}`}>
           <article className="flowDetailMain">
             <span className="flowChip">
-              当前步骤 {activeStep + 1} / {FLOW_STEPS.length}
+              {copy.currentStep} {activeStep + 1} / {steps.length}
             </span>
             <h3>{currentStep.title}</h3>
             <p>{currentStep.description}</p>
 
             <div className="flowOutcome">
-              <span>这一步会产出什么</span>
+              <span>{copy.outcome}</span>
               <strong>{currentStep.result}</strong>
             </div>
           </article>
 
           <div className="flowFacts">
             <article className="flowFact">
-              <span>系统在做什么</span>
+              <span>{copy.systemAction}</span>
               <strong>{currentStep.systemAction}</strong>
             </article>
             <article className="flowFact">
-              <span>用户会看到什么</span>
+              <span>{copy.userView}</span>
               <strong>{currentStep.userView}</strong>
             </article>
             <article className="flowFact">
-              <span>为什么要这一步</span>
-              <strong>把过程拆开展示，用户更容易理解结果不是“拍脑袋”得出的。</strong>
+              <span>{copy.why}</span>
+              <strong>{copy.whyDetail}</strong>
             </article>
           </div>
         </div>

@@ -8,25 +8,25 @@ import { getSiteDescription, getSiteName, getSiteTitle, resolveAbsoluteUrl } fro
 
 const DEFAULT_SAMPLE_COUNT = 50;
 const DEFAULT_CONCURRENCY = 3;
-const HOME_URL = resolveAbsoluteUrl("/");
-const siteName = getSiteName();
-const siteTitle = getSiteTitle();
-const siteDescription = getSiteDescription();
+const HOME_URL = resolveAbsoluteUrl("/en");
+const siteName = getSiteName("en");
+const siteTitle = getSiteTitle("en");
+const siteDescription = getSiteDescription("en");
 
 export const metadata: Metadata = {
   title: `${siteTitle} | ${siteName}`,
   description: siteDescription,
   alternates: {
-    canonical: "/",
+    canonical: "/en",
     languages: {
       "zh-CN": "/",
       en: "/en",
     },
   },
   openGraph: {
-    url: "/",
+    url: "/en",
     type: "website",
-    locale: "zh_CN",
+    locale: "en_US",
     siteName,
     title: `${siteTitle} | ${siteName}`,
     description: siteDescription,
@@ -55,7 +55,7 @@ type HomePageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function Home(props: HomePageProps) {
+export default async function EnglishHomePage(props: HomePageProps) {
   const searchParams = await props.searchParams;
   const error = readSearchValue(searchParams.error);
   const baseUrl = normalizeBaseUrl(readText(readSearchValue(searchParams.baseUrl), DEFAULT_OPENAI_BASE_URL));
@@ -70,7 +70,7 @@ export default async function Home(props: HomePageProps) {
         "@id": `${HOME_URL}#website`,
         name: siteTitle,
         url: HOME_URL,
-        inLanguage: "zh-CN",
+        inLanguage: "en",
         description: siteDescription,
       },
       {
@@ -80,12 +80,12 @@ export default async function Home(props: HomePageProps) {
         url: HOME_URL,
         applicationCategory: "DeveloperApplication",
         operatingSystem: "Web Browser",
-        inLanguage: "zh-CN",
+        inLanguage: "en",
         description: siteDescription,
         featureList: [
-          "检测第三方 OpenAI 兼容接口是否存在模型掺水",
-          "识别声明模型与实际输出能力是否降配或错配",
-          "支持中文检测、OpenAI 官方地址和自定义兼容 Base URL",
+          "Check whether a third-party OpenAI-compatible endpoint is serving a diluted model",
+          "Compare the observed fingerprint against stored baseline models",
+          "Support both the official OpenAI base URL and custom OpenAI-compatible endpoints",
         ],
         offers: {
           "@type": "Offer",
@@ -107,35 +107,36 @@ export default async function Home(props: HomePageProps) {
           <div className="heroBlock">
             <div className="sectionHeader">
               <p className="eyebrow">HLWY Model Check</p>
-              <Link className="secondaryButton" href="/en" prefetch={false}>
-                English
+              <Link className="secondaryButton" href="/" prefetch={false}>
+                中文
               </Link>
             </div>
-            <h1>模型掺水检测</h1>
+            <h1>Model Dilution Detection</h1>
             <p className="heroLead">
-              输入接口地址、API Key 和模型名，直接发起一次中文探针检测。这个页面的用途不是聊天，而是核验第三方 OpenAI
-              兼容接口是否把声明的 GPT 模型掺水、降配或错配成更弱模型。
+              Enter the endpoint, API key, and model name to run a Chinese-language probe against the target model. This page is not a chat
+              interface. It is built to verify whether a third-party OpenAI-compatible endpoint is serving the claimed GPT model or a weaker
+              substitute behind it.
             </p>
           </div>
 
           <div className="heroBlock introMeta">
             <p>
-              支持 OpenAI 官方地址，也支持兼容 OpenAI <code>chat/completions</code> 的自定义接口。
+              Works with the official OpenAI endpoint and with custom services that implement OpenAI-compatible <code>chat/completions</code>.
             </p>
-            <p>结果页会自动刷新，历史记录保存在当前浏览器，适合做接口交付验收和模型真实性排查。</p>
+            <p>The result page auto-refreshes, and recent history stays in the current browser for delivery checks and authenticity reviews.</p>
           </div>
 
           <div className="heroBlock compactList">
             <article className="compactCard">
-              <span>接口</span>
-              <strong>自定义 Base URL</strong>
-              <p>可填写官方地址或你自己的兼容服务地址。</p>
+              <span>Endpoint</span>
+              <strong>Custom Base URL</strong>
+              <p>Use the official URL or your own OpenAI-compatible service endpoint.</p>
             </article>
             <article className="compactCard">
-              <span>模型</span>
-              <strong>自由输入模型名</strong>
+              <span>Model</span>
+              <strong>Free-form model name</strong>
               <p>
-                默认预填 <code>gpt-5.5</code>，可直接改成你要检测的 OpenAI 模型名。
+                Prefilled with <code>gpt-5.5</code>, and you can replace it with the model you need to validate.
               </p>
             </article>
           </div>
@@ -144,16 +145,16 @@ export default async function Home(props: HomePageProps) {
         <div className="formPanel">
           <div className="sectionHeader">
             <div>
-              <p className="eyebrow">开始检测</p>
-              <h2>提交一次真实检测</h2>
-              <p className="muted">用真实 API 返回结果判断模型是否掺水。首页只保留必要输入项，高级参数默认折叠。</p>
+              <p className="eyebrow">Run Check</p>
+              <h2>Submit a live inspection</h2>
+              <p className="muted">The result is based on real API responses. The homepage keeps only the required inputs, with advanced settings collapsed.</p>
             </div>
-            <Link className="secondaryButton" href="/runs" prefetch={false}>
-              历史记录
+            <Link className="secondaryButton" href="/en/runs" prefetch={false}>
+              History
             </Link>
           </div>
 
-          <form action={localizePath("zh-CN", "/runs/start")} className="form" method="post">
+          <form action={`${localizePath("zh-CN", "/runs/start")}?lang=en`} className="form" method="post">
             <label>
               <span>API Base URL</span>
               <input defaultValue={baseUrl} name="baseUrl" placeholder="https://api.openai.com/v1" required type="url" />
@@ -165,37 +166,37 @@ export default async function Home(props: HomePageProps) {
             </label>
 
             <label>
-              <span>模型名</span>
+              <span>Model name</span>
               <input defaultValue={model} name="model" placeholder="gpt-5.5" required type="text" />
             </label>
 
             <p className="helperText">
-              请填写当前接口实际支持的 OpenAI 模型名，例如 <code>gpt-5.5</code>。
+              Enter the exact OpenAI model name supported by this endpoint, for example <code>gpt-5.5</code>.
             </p>
 
             <details className="advancedPanel">
-              <summary>高级设置</summary>
+              <summary>Advanced settings</summary>
               <div className="advancedBody">
                 <div className="formRow">
                   <label>
-                    <span>采样数</span>
+                    <span>Samples</span>
                     <input defaultValue={sampleCount} max={100} min={50} name="sampleCount" required type="number" />
                   </label>
                   <label>
-                    <span>并发数</span>
+                    <span>Concurrency</span>
                     <input defaultValue={concurrency} max={5} min={1} name="concurrency" required type="number" />
                   </label>
                 </div>
-                <p className="fieldMeta">默认值适合首轮检测。需要更快试跑时可降低采样数，接口稳定时可提高并发。</p>
+                <p className="fieldMeta">The defaults are suitable for a first pass. Lower samples for a faster smoke test, or raise concurrency when the endpoint is stable.</p>
               </div>
             </details>
 
             <button className="primaryButton" type="submit">
-              开始检测
+              Start check
             </button>
 
             {error ? <p className="errorText">{error}</p> : null}
-            {!error ? <p className="fieldMeta">API Key 不会写入页面地址。表单校验失败时只回填可公开的字段。</p> : null}
+            {!error ? <p className="fieldMeta">The API key is never written into the page URL. On validation errors, only public fields are preserved.</p> : null}
           </form>
         </div>
       </section>
@@ -203,46 +204,46 @@ export default async function Home(props: HomePageProps) {
       <section className="listPanel principleSection">
         <div className="sectionHeader">
           <div>
-            <p className="eyebrow">检测原理</p>
-            <h2>用流程图看懂结果怎么来的</h2>
+            <p className="eyebrow">How It Works</p>
+            <h2>See the result pipeline as a flow</h2>
             <p className="muted">
-              这个演示会按“发起采样、提取有效数字、计算分布、输出结果”四步自动切换，让用户直接看懂系统为什么会给出当前结论。
+              This demo cycles through four steps: collect samples, extract valid numbers, build the distribution, and produce the report.
             </p>
           </div>
         </div>
 
-        <DetectionPrinciplePanel locale="zh-CN" />
+        <DetectionPrinciplePanel locale="en" />
       </section>
 
       <section className="listPanel">
         <div className="sectionHeader">
           <div>
-            <p className="eyebrow">实际用途</p>
-            <h2>这个网站具体用来做什么</h2>
-            <p className="muted">核心目标是识别模型是否掺水，而不是做通用聊天入口。</p>
+            <p className="eyebrow">Use Cases</p>
+            <h2>What this site is for</h2>
+            <p className="muted">Its purpose is to verify model authenticity, not to serve as a general chat front end.</p>
           </div>
         </div>
 
         <div className="compactList">
           <article className="compactCard">
-            <span>验收</span>
-            <strong>核验第三方接口交付</strong>
-            <p>检测第三方服务声称提供的 GPT 模型，是否真的具备对应能力，而不是被偷偷换成更弱模型。</p>
+            <span>Acceptance</span>
+            <strong>Verify third-party delivery</strong>
+            <p>Check whether a service that claims to expose a GPT model actually behaves like that model instead of a weaker replacement.</p>
           </article>
           <article className="compactCard">
-            <span>排查</span>
-            <strong>识别掺水、降配、错配</strong>
-            <p>用于排查中转、代理或聚合平台是否存在模型降级、型号错配，或输出能力明显低于声明型号。</p>
+            <span>Investigation</span>
+            <strong>Spot dilution, downgrade, or mismatch</strong>
+            <p>Use it to review gateways, resellers, or aggregators for model downgrades, SKU mismatches, or output quality far below the claimed tier.</p>
           </article>
           <article className="compactCard">
-            <span>适配</span>
-            <strong>支持 OpenAI 兼容接口</strong>
-            <p>既可以检测 OpenAI 官方地址，也可以检测兼容 <code>chat/completions</code> 的自定义接口。</p>
+            <span>Compatibility</span>
+            <strong>Support OpenAI-compatible endpoints</strong>
+            <p>It works with the official OpenAI endpoint and with custom services implementing <code>chat/completions</code>.</p>
           </article>
           <article className="compactCard">
-            <span>语言</span>
-            <strong>中文检测页面</strong>
-            <p>默认提供中文页面，同时现在也有英文入口，便于不同团队直接查看同一套检测结果。</p>
+            <span>Language</span>
+            <strong>English interface available</strong>
+            <p>The UI is now available in English while the underlying probe remains the same, so mixed-language teams can review the same run.</p>
           </article>
         </div>
       </section>

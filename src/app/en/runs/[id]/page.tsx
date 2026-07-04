@@ -11,7 +11,7 @@ import { serializeRun } from "@/lib/serializers";
 import { findWorkspaceFromCookie } from "@/lib/workspace";
 
 export const metadata: Metadata = {
-  title: "检测详情",
+  title: "Run Details",
   robots: {
     index: false,
     follow: false,
@@ -42,7 +42,7 @@ type RunDetailPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function RunDetailPage(props: RunDetailPageProps) {
+export default async function EnglishRunDetailPage(props: RunDetailPageProps) {
   const workspace = await findWorkspaceFromCookie();
   if (!workspace) {
     notFound();
@@ -64,7 +64,7 @@ export default async function RunDetailPage(props: RunDetailPageProps) {
   }
 
   const run = serializeRun(record);
-  const shareUrl = run.shareToken ? await createAbsoluteUrl(localizePath("zh-CN", `/share/${run.shareToken}`)) : null;
+  const shareUrl = run.shareToken ? await createAbsoluteUrl(localizePath("en", `/share/${run.shareToken}`)) : null;
   const shouldRefresh = !isTerminalRunStatus(run.status);
   const showSharedNotice = readSearchValue(searchParams.shared) === "1" && shareUrl;
 
@@ -74,52 +74,48 @@ export default async function RunDetailPage(props: RunDetailPageProps) {
       <main className="shell pageShell">
         <section className="pageHeader">
           <div>
-            <p className="eyebrow">检测详情</p>
+            <p className="eyebrow">Run Details</p>
             <h1>{run.model}</h1>
             <p className="pageLead">
-              当前状态：{formatRunStatus(run.status, "zh-CN")}。创建于 {formatRunTime(run.createdAt, "zh-CN")}，接口地址为{" "}
-              {formatRunEndpoint(run.baseUrl)}。
+              Current status: {formatRunStatus(run.status, "en")}. Created at {formatRunTime(run.createdAt, "en")}. Endpoint:{" "}
+              {formatRunEndpoint(run.baseUrl)}.
             </p>
           </div>
 
           <div className="actionRow">
-            <Link className="secondaryButton" href={localizePath("en", `/runs/${run.id}`)} prefetch={false}>
-              English
+            <Link className="secondaryButton" href={localizePath("zh-CN", `/runs/${run.id}`)} prefetch={false}>
+              中文
             </Link>
-            <Link className="secondaryButton" href="/" prefetch={false}>
-              新建检测
+            <Link className="secondaryButton" href="/en" prefetch={false}>
+              New check
             </Link>
-            <Link className="secondaryButton" href="/runs" prefetch={false}>
-              查看历史
+            <Link className="secondaryButton" href="/en/runs" prefetch={false}>
+              History
             </Link>
             {!shareUrl ? (
-              <form action={`/runs/${run.id}/share`} method="post">
+              <form action={`/runs/${run.id}/share?lang=en`} method="post">
                 <button className="primaryButton" type="submit">
-                  生成链接
+                  Generate link
                 </button>
               </form>
             ) : null}
           </div>
         </section>
 
-        {shouldRefresh ? (
-          <p className="progressNotice">检测仍在进行中，页面会每 3 秒自动刷新一次。</p>
-        ) : null}
+        {shouldRefresh ? <p className="progressNotice">The check is still running. This page refreshes automatically every 3 seconds.</p> : null}
 
-        {showSharedNotice ? <p className="shareNotice">访问链接已生成，可直接打开或复制给他人。</p> : null}
+        {showSharedNotice ? <p className="shareNotice">The shared link is ready. You can open it directly or send it to someone else.</p> : null}
 
         {shareUrl ? (
           <p className="shareNotice" id="share-link">
-            访问链接：
-            {" "}
-            <a href={shareUrl}>{shareUrl}</a>
+            Shared URL: <a href={shareUrl}>{shareUrl}</a>
           </p>
         ) : null}
 
         <ReportView
-          description="这里展示本次检测的完整结果。运行中会先显示进度，完成后补齐排名和分布图。"
-          heading="当前结果"
-          locale="zh-CN"
+          description="This page shows the full result for the current run. While the job is still running, progress appears first and ranking/chart details fill in later."
+          heading="Current Result"
+          locale="en"
           run={run}
           shareUrl={shareUrl}
         />

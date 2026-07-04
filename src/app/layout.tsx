@@ -1,19 +1,24 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 
-import { resolveSiteUrl, siteDescription, siteName, siteTitle } from "@/lib/site";
+import { normalizeLocale } from "@/lib/locale";
+import { getSiteDescription, getSiteName, getSiteTitle, resolveSiteUrl } from "@/lib/site";
 
 import "./globals.css";
 
 const siteUrl = resolveSiteUrl();
+const defaultSiteName = getSiteName();
+const defaultSiteTitle = getSiteTitle();
+const defaultSiteDescription = getSiteDescription();
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
-  applicationName: siteName,
+  applicationName: defaultSiteName,
   title: {
-    default: `${siteTitle} | ${siteName}`,
-    template: `%s | ${siteName}`,
+    default: `${defaultSiteTitle} | ${defaultSiteName}`,
+    template: `%s | ${defaultSiteName}`,
   },
-  description: siteDescription,
+  description: defaultSiteDescription,
   keywords: [
     "模型掺水检测",
     "大模型降配检测",
@@ -28,14 +33,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "zh_CN",
     url: "/",
-    siteName,
-    title: `${siteTitle} | ${siteName}`,
-    description: siteDescription,
+    siteName: defaultSiteName,
+    title: `${defaultSiteTitle} | ${defaultSiteName}`,
+    description: defaultSiteDescription,
   },
   twitter: {
     card: "summary_large_image",
-    title: `${siteTitle} | ${siteName}`,
-    description: siteDescription,
+    title: `${defaultSiteTitle} | ${defaultSiteName}`,
+    description: defaultSiteDescription,
   },
   robots: {
     index: true,
@@ -50,13 +55,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headerStore = await headers();
+  const locale = normalizeLocale(headerStore.get("x-app-locale"));
+
   return (
-    <html lang="zh-CN">
+    <html lang={locale}>
       <body>{children}</body>
     </html>
   );

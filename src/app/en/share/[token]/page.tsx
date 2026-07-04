@@ -9,7 +9,7 @@ import { formatRunEndpoint, formatRunStatus, isTerminalRunStatus } from "@/lib/r
 import { serializeRun } from "@/lib/serializers";
 
 export const metadata: Metadata = {
-  title: "结果访问",
+  title: "Shared Result",
   robots: {
     index: false,
     follow: false,
@@ -21,7 +21,7 @@ type SharePageProps = {
   params: Promise<{ token: string }>;
 };
 
-export default async function SharePage(props: SharePageProps) {
+export default async function EnglishSharePage(props: SharePageProps) {
   const { token } = await props.params;
 
   const shared = await prisma.sharedReport.findFirst({
@@ -51,28 +51,28 @@ export default async function SharePage(props: SharePageProps) {
       <main className="shell pageShell">
         <section className="pageHeader">
           <div>
-            <p className="eyebrow">结果访问</p>
+            <p className="eyebrow">Shared Result</p>
             <h1>{run.model}</h1>
             <p className="pageLead">
-              当前状态：{formatRunStatus(run.status, "zh-CN")}。接口地址为 {formatRunEndpoint(run.baseUrl)}。此链接只展示检测结果。
+              Current status: {formatRunStatus(run.status, "en")}. Endpoint: {formatRunEndpoint(run.baseUrl)}. This link is read-only and exposes only the result.
             </p>
           </div>
           <div className="actionRow">
-            <Link className="secondaryButton" href={localizePath("en", `/share/${token}`)} prefetch={false}>
-              English
+            <Link className="secondaryButton" href={localizePath("zh-CN", `/share/${token}`)} prefetch={false}>
+              中文
             </Link>
-            <Link className="secondaryButton" href="/" prefetch={false}>
-              返回首页
+            <Link className="secondaryButton" href="/en" prefetch={false}>
+              Back to home
             </Link>
           </div>
         </section>
 
-        {shouldRefresh ? <p className="progressNotice">检测仍在进行中，页面会每 3 秒自动刷新一次。</p> : null}
+        {shouldRefresh ? <p className="progressNotice">The check is still running. This page refreshes automatically every 3 seconds.</p> : null}
 
         <ReportView
-          heading="访问结果"
-          description="这是本次检测的只读结果页，仅用于查看，不包含可复用的接口凭据。"
-          locale="zh-CN"
+          heading="Shared View"
+          description="This is the read-only result page for the run. It is intended only for review and does not include reusable credentials."
+          locale="en"
           run={run}
           shareUrl={null}
           readonly

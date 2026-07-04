@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getLocalePrefix, normalizeLocale } from "@/lib/locale";
 import { normalizeBaseUrl } from "@/lib/openai";
 import { getClientIpHash } from "@/lib/http";
 import { assertRunRateLimit } from "@/lib/rate-limit";
@@ -23,11 +24,13 @@ function createRedirectResponse(location: string) {
   });
 }
 
-function createHomeRedirectUrl(params: URLSearchParams) {
-  return params.size > 0 ? `/?${params.toString()}` : "/";
+function createHomeRedirectUrl(locale: ReturnType<typeof normalizeLocale>, params: URLSearchParams) {
+  const pathname = getLocalePrefix(locale) || "/";
+  return params.size > 0 ? `${pathname}?${params.toString()}` : pathname;
 }
 
 export async function POST(request: Request) {
+  const locale = normalizeLocale(new URL(request.url).searchParams.get("lang"));
   const formData = await request.formData();
   const baseUrl = normalizeBaseUrl(readFormValue(formData, "baseUrl"));
   const apiKey = readFormValue(formData, "apiKey");
@@ -58,8 +61,13 @@ export async function POST(request: Request) {
   });
 
   if (!parsed.success) {
-    redirectParams.set("error", "请检查接口地址、API Key、模型名以及高级设置。");
-    return createRedirectResponse(createHomeRedirectUrl(redirectParams));
+    redirectParams.set(
+      "error",
+      locale === "en"
+        ? "Check the endpoint, API key, model name, and advanced settings."
+        : "请检查接口地址、API Key、模型名以及高级设置。",
+    );
+    return createRedirectResponse(createHomeRedirectUrl(locale, redirectParams));
   }
 
   try {
@@ -80,9 +88,10 @@ export async function POST(request: Request) {
       ...parsed.data,
     });
 
-    return createRedirectResponse(`/runs/${run.id}`);
+    const prefix = getLocalePrefix(locale);
+    return createRedirectResponse(`${prefix}/runs/${run.id}`);
   } catch (error) {
-    redirectParams.set("error", formatRunStartError(error));
-    return createRedirectResponse(createHomeRedirectUrl(redirectParams));
+    redirectParams.set("error", formatRunStartError(error, locale));
+    return createRedirectResponse(createHomeRedirectUrl(locale, redirectParams));
   }
 }
