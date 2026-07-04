@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model Workspace {
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @updatedAt
+  testRuns   TestRun[]
+}
+
+model BaselineProfile {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  displayName  String
+  vendor       String
+  model        String
+  sampleCount  Int
+  distribution Json
+  stats        Json
+  version      Int      @default(1)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model TestRun {
+  id           String       @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  requestIpHash String?
+  baseUrl       String
+  model         String
+  apiKeyLast4   String?
+  sampleCount   Int
+  concurrency   Int
+  processedCount Int        @default(0)
+  errorCount     Int        @default(0)
+  validResults  Json
+  distribution  Json?
+  stats         Json?
+  matches       Json?
+  status        RunStatus    @default(PENDING)
+  errorSummary  String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  sharedReport  SharedReport?
+
+  @@index([workspaceId, createdAt])
+  @@index([requestIpHash, createdAt])
+}
+
+model SharedReport {
+  id         String    @id @default(cuid())
+  testRunId   String    @unique
+  testRun     TestRun   @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  shareToken  String    @unique
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
+}
