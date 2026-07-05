@@ -41,12 +41,27 @@ export type MatchResult = {
   score: number;
 };
 
+export type ReportOutcome =
+  | "match"
+  | "suspected_downgrade"
+  | "mismatch"
+  | "baseline_missing"
+  | "inconclusive"
+  | "insufficient_data"
+  | "failed";
+
 export type ReportSummary = {
-  outcome: "matched" | "insufficient_data" | "failed";
+  outcome: ReportOutcome;
   validSamples: number;
   sampleCount: number;
+  requestedModel?: string;
+  matchedModel?: string;
+  matchedDisplayName?: string;
   topScore?: number;
+  scoreGap?: number;
+  verdict: string;
   explanation: string;
+  recommendation?: string;
 };
 
 export type ChartBuckets = {

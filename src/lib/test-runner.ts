@@ -192,8 +192,10 @@ export async function executeRun(input: RunInput) {
         ? createComparisonChart(distribution, winnerBaseline.distribution, input.model, winner.displayName)
         : null;
     const summary = summarizeRun({
+      requestedModel: input.model,
       sampleCount: input.sampleCount,
       validSampleCount: results.length,
+      baselineModels: baselines.map((item) => item.model),
       topMatches,
     });
 

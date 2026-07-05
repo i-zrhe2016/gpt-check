@@ -5,6 +5,8 @@ import {
   formatRunOutcome,
   formatRunStatus,
   formatRunSummaryExplanation,
+  formatRunSummaryRecommendation,
+  formatRunSummaryVerdict,
 } from "@/lib/run-presenters";
 
 type ReportViewProps = {
@@ -36,6 +38,13 @@ export function ReportView({ heading, description, run, shareUrl, locale = "zh-C
     | {
         explanation?: string;
         outcome?: string;
+        requestedModel?: string;
+        matchedModel?: string;
+        matchedDisplayName?: string;
+        topScore?: number;
+        scoreGap?: number;
+        verdict?: string;
+        recommendation?: string;
       }
     | null;
   const copy =
@@ -45,6 +54,7 @@ export function ReportView({ heading, description, run, shareUrl, locale = "zh-C
           openSharePage: "Open shared view",
           runStatus: "Run status",
           summaryPlaceholder: "A summary will appear here after the check completes.",
+          recommendationLabel: "Next step",
           validSamples: "Valid samples",
           processedRequests: `Processed ${run.processedCount} requests so far.`,
           requestFailures: "Request failures",
@@ -64,6 +74,7 @@ export function ReportView({ heading, description, run, shareUrl, locale = "zh-C
           openSharePage: "打开访问页",
           runStatus: "运行状态",
           summaryPlaceholder: "检测完成后，这里会显示结果摘要。",
+          recommendationLabel: "建议动作",
           validSamples: "有效样本",
           processedRequests: `当前已处理 ${run.processedCount} 次请求。`,
           requestFailures: "请求失败",
@@ -79,6 +90,8 @@ export function ReportView({ heading, description, run, shareUrl, locale = "zh-C
           unavailable: "暂无",
         };
   const summaryText = formatRunSummaryExplanation(summary, topMatches, locale);
+  const summaryVerdict = formatRunSummaryVerdict(summary, locale);
+  const summaryRecommendation = formatRunSummaryRecommendation(summary, locale);
 
   return (
     <section className="reportCard">
@@ -100,7 +113,14 @@ export function ReportView({ heading, description, run, shareUrl, locale = "zh-C
           <span>{copy.runStatus}</span>
           <strong>{formatRunStatus(run.status, locale)}</strong>
           {summary?.outcome ? <small>{formatRunOutcome(summary.outcome, locale)}</small> : null}
+          {summaryVerdict ? <p><strong>{summaryVerdict}</strong></p> : null}
           <p>{summaryText ?? copy.summaryPlaceholder}</p>
+          {summaryRecommendation ? (
+            <p>
+              <strong>{copy.recommendationLabel}：</strong>
+              {summaryRecommendation}
+            </p>
+          ) : null}
         </div>
         <div className="metricCard">
           <span>{copy.validSamples}</span>
